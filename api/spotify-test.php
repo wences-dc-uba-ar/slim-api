@@ -7,13 +7,11 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__.'/..');
 $dotenv->load();
 
 
-$sp = Spotify::getInstance();
-
 // $result = $sp->search('metallica', 15, 'artist,album,playlist,track');
 // file_put_contents('search.json', json_encode($result, JSON_PRETTY_PRINT));
-$result = $sp->search('metallica', 1, 'artist');
+$result = Spotify::getInstance()->search('metallica', 1, 'artist');
 
-var_export($result['artists']);
+var_export($result);
 
 // $result = $sp->getAlbums();
 // $sp->getArtistData('metallica');

@@ -36,7 +36,7 @@ class Spotify {
     }
 
 
-    public function search($keywords, $limit=10, $type='artist', $market='AR') {
+    public function search($keywords, $limit=1, $type='artist', $market='AR') {
 
         $uri = 'https://api.spotify.com/v1/search';
 
@@ -49,14 +49,15 @@ class Spotify {
             ],
         ]);
 
-        $result = $response;
-
         $result = [];
         foreach ($response as $atype => $typeResults) {
             if(isset($typeResults['items'])){
                 $result[$atype] = [];
                 foreach ($typeResults['items'] as $key => $value) {
-                    $result[$atype][$value['id']] = $value['name'];
+                    $result[$atype][$value['id']] = [
+                        'id'=>$value['id'],
+                        'name'=>$value['name'],
+                    ];
                 }
             }
         }
@@ -91,13 +92,12 @@ class Spotify {
     }
 
     private function request($uri, $extra = [], $method = 'GET'){
-        echo("->request()\n");
 
         try {
             $extra['headers'] = ["Authorization"=>"Bearer " . $this->getToken()];
             $response = $this->client->request($method, $uri, $extra);
         } catch (GuzzleHttp\Exception\ClientException $gece) {
-            echo(' retry auth, maybe token timeout\n');
+            // echo(' retry auth, maybe token timeout\n');
             $this->authorize();
             $extra['headers'] = ["Authorization"=>"Bearer " . $this->getToken()];
             $response = $this->client->request($method, $uri, $extra);
@@ -118,22 +118,18 @@ class Spotify {
     }
 
     private function getToken() {
-        echo("->getToken()\n");
+
         if(!$this->access_token) {
             if(file_exists($this->fs_token_file)) {
-                echo(" found token fs cache\n");
                 $this->access_token = file_get_contents($this->fs_token_file);
             }else{
                 $this->authorize();
             }
-        } else {
-            echo(" found token in instance\n");
         }
         return $this->access_token;
     }
 
     private function authorize() {
-        echo("->authorize()\n");
 
         $b64 = base64_encode($this->clientID . ":" . $this->clientSecret);
 
