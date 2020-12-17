@@ -10,6 +10,9 @@
             "request": "launch",
             "port": 9003,
             "stopOnEntry": true
+            // "env": {
+            //     "XDEBUG_SESSION": "1"
+            // }
         },
         {
             "name": "Launch currently open script",
@@ -19,6 +22,9 @@
             "cwd": "${fileDirname}",
             "port": 9003,
             "stopOnEntry": true
+            // "env": {
+            //     "XDEBUG_SESSION": "1"
+            // }
         }
     ]
 }
