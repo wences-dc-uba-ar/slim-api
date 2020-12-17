@@ -36,11 +36,11 @@ class Spotify {
     }
 
 
-    public function search($keywords, $limit=1, $type='artist', $market='AR') {
+    public static function search($keywords, $limit=1, $type='artist', $market='AR') {
 
         $uri = 'https://api.spotify.com/v1/search';
 
-        $response = $this->request($uri, [
+        $response = self::getInstance()->request($uri, [
             'query' => [
                 'q' => $keywords,
                 'type' => $type,

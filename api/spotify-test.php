@@ -9,7 +9,7 @@ $dotenv->load();
 
 // $result = $sp->search('metallica', 15, 'artist,album,playlist,track');
 // file_put_contents('search.json', json_encode($result, JSON_PRETTY_PRINT));
-$result = Spotify::getInstance()->search('metallica', 1, 'artist');
+$result = Spotify::search('metallica', 1, 'artist');
 
 var_export($result);
 
