@@ -7,14 +7,27 @@ require __DIR__ . '/../vendor/autoload.php';
 
 
 class Spotify {
-    private $client = null;
+
+    private static $instance = null;
+
     private $clientID = null;
     private $clientSecret = null;
-    private $access_token = null;
     private $fs_token_file = null;
+    private $access_token = null;
+    private $client = null;
+
+    public static function getInstance($clientID=null, $clientSecret=null) {
+        if (self::$instance == null) {
+            $clientID = $clientID ?: $_ENV['SPOTIFY_CLIENT_ID'];
+            $clientSecret = $clientSecret ?: $_ENV['SPOTIFY_CLIENT_SECRET'];
+            self::$instance = new Spotify($clientID, $clientSecret);
+        }
+
+        return self::$instance;
+    }
 
 
-    public function __construct($clientID, $clientSecret) {
+    private function __construct($clientID, $clientSecret) {
 
         $this->clientID = $clientID;
         $this->clientSecret = $clientSecret;
