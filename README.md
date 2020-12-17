@@ -31,3 +31,9 @@ php --server=0.0.0.0:8080 api/index.php
 -   login and create an spotify app in https://developer.spotify.com/dashboard/applications
 
 -   get the `Client Secret` and `Client Id` from the app details page
+
+## Todo
+
+-   reubicar funcionalidad segun slim
+
+-   unit testing
