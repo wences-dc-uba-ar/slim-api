@@ -76,20 +76,17 @@ $app->get('/api/v1/search/{name}', function (Request $request, Response $respons
 });
 
 
-$app->get('/{path:.+}', function ($request, $response, array $args) {
+$app->get('{path:.+}', function ($request, $response, array $args) {
     global $patterns;
-    $response->getBody()->write(json_encode([
-        'error' => 404,
-        'message' => 'invalid route',
-        'try' => [
-            'get artist albums' => '/api/v1/albums?q={name  }',
-            'search artist' => '/api/v1/search/{name}',
-        ],
-    ], JSON_PRETTY_PRINT));
+    $response->getBody()->write("
+    Services:<br/>
+    <br/>
+    - search artists: <a href='/api/v1/search/metallica'>/api/v1/search/{metallica}</a>
+    <br/>
+    - get artist albums: <a href='/api/v1/albums?q=u2'>/api/v1/albums?q={u2}</a>
+    ");
 
-    $response = $response->withStatus(404, 'not found');
-
-    return $response->withHeader('Content-Type', 'application/json');
+    return $response->withStatus(404, 'not found');
 });
 
 
