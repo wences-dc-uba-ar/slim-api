@@ -9,6 +9,9 @@ require __DIR__ . '/../vendor/autoload.php';
 
 class Spotify {
 
+    const MAX_BATCH_SIZE = 50;  // spotify api max
+    const ALL_HARD_LIMIT = 100;
+
     private static $instance = null;
 
     private $clientID = null;
@@ -37,19 +40,17 @@ class Spotify {
     }
 
 
-    public static function search($keywords, $limit=10, $offset=0, $type='artist', $market='AR') {
+    public static function search($keywords, $query=[]) {
 
         // https://developer.spotify.com/documentation/web-api/reference-beta/#category-search
         $uri = "https://api.spotify.com/v1/search";
 
         $response = self::getInstance()->request($uri, [
-            'query' => [
-                'q' => $keywords,
-                'type' => $type,
-                'market' => $market,
-                'limit' => $limit,
-                'offset' => $offset,
-            ],
+            'q' => $keywords,
+            'limit' => $query['limit'] ?? 1,
+            'offset' => $query['offset'] ?? null,
+            'type' => $query['type'] ?? 'artist',
+            'market' => $query['market'] ?? 'AR',
         ]);
 
         $result = [];
@@ -69,18 +70,16 @@ class Spotify {
     }
 
 
-    public static function getAlbums($artist_id, $limit=10, $offset=0, $market='AR', $include_groups='album,single') {
+    public static function getAlbums($artist_id, $query=[]) {
 
         // https://developer.spotify.com/documentation/web-api/reference-beta/#endpoint-get-an-artists-albums
         $uri = "https://api.spotify.com/v1/artists/$artist_id/albums";
 
-        $response = self::getInstance()->request($uri, [
-            'query' => [
-                'market' => $market,
-                'limit' => $limit,
-                'offset' => $offset,
-                'include_groups' => $include_groups,
-            ]
+        $response = self::getInstance()->requestAll($uri, [
+            'limit' => $query['limit'] ?? null,
+            'offset' => $query['offset'] ?? null,
+            'market' => $query['market'] ?? 'AR',
+            'include_groups' => $query['include_groups'] ?? 'album,single'
         ]);
 
         $result = [];
@@ -117,20 +116,42 @@ class Spotify {
     }
 
 
-    private function requestAll($uri, $extra = [], $method = 'GET') {
+    private function requestAll($uri, $query=[], $extra=[], $method='GET', $batch_size=self::MAX_BATCH_SIZE) {
 
-        // TODO: make the request for all pages
-        // "limit": 10,
-        // "next": "https://api.spotify.com/v1/artists/1DFr97A9HnbV3SKTJFu62M/albums?offset=10&limit=10&include_groups=album,single&market=AR",
-        // "offset": 0,
-        // "previous": null,
-        // "total": 64
+        $batch_size = min(self::MAX_BATCH_SIZE, $batch_size);
+        $hard_limit = min(self::ALL_HARD_LIMIT, $query['limit'] ?? self::ALL_HARD_LIMIT);
+        $offset = 0;
+        $combined = [];
+        while($hard_limit > 0) {
+            $limit = min($hard_limit, $batch_size);
+
+            $query['limit'] = $limit;
+            $query['offset'] = $offset;
+            $offset += $batch_size;
+            $hard_limit -= $batch_size;
+
+            $a_response = $this->request($uri, $query, $extra, $method);
+            if(!$combined) {
+                $combined = $a_response;
+            } else {
+                $combined['items'] = array_merge($combined['items'], $a_response['items']);
+            }
+
+            if(empty($a_response['next'])) {
+                break;
+            }
+        }
+
+        return $combined;
     }
 
 
-    private function request($uri, $extra = [], $method = 'GET') {
+    private function request($uri, $query=[], $extra=[], $method='GET') {
+
+        // echo("\n->request(): $uri ? " . http_build_query($query));
 
         try {
+            $extra['query'] = $query;
             $extra['headers'] = ["Authorization"=>"Bearer " . $this->getToken()];
             $response = $this->client->request($method, $uri, $extra);
         } catch (GuzzleHttp\Exception\ClientException $gece) {
@@ -151,6 +172,7 @@ class Spotify {
             $data = ['raw response'=>$body];
         }
         // $data['status-code'] = $response->getStatusCode();
+
         return $data;
     }
 
