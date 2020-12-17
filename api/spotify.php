@@ -79,7 +79,7 @@ class Spotify {
             'limit' => $query['limit'] ?? null,
             'offset' => $query['offset'] ?? null,
             'market' => $query['market'] ?? 'AR',
-            'include_groups' => $query['include_groups'] ?? 'album,single'
+            'include_groups' => $query['include_groups'] ?? 'album,single,appears_on,compilation'
         ]);
 
         $result = [];
@@ -148,8 +148,6 @@ class Spotify {
 
     private function request($uri, $query=[], $extra=[], $method='GET') {
 
-        // echo("\n->request(): $uri ? " . http_build_query($query));
-
         try {
             $extra['query'] = $query;
             $extra['headers'] = ["Authorization"=>"Bearer " . $this->getToken()];
@@ -163,15 +161,11 @@ class Spotify {
             throw new $th;
         }
 
-        // if($response->getStatusCode() != 200) {
-        //     throw new Exception('status code: ' . $response->getStatusCode());
-        // }
         $body = $response->getBody()->getContents();
         $data = @json_decode($body, true);
         if (!$data) {
             $data = ['raw response'=>$body];
         }
-        // $data['status-code'] = $response->getStatusCode();
 
         return $data;
     }
@@ -198,7 +192,7 @@ class Spotify {
         ]);
 
         if($response->getStatusCode() != 200) {
-            throw new Exception('Auth status code: ' . $response->getStatusCode());
+            throw new Exception('Auth error', $response->getStatusCode());
         }
 
         $body = @json_decode($response->getBody()->getContents());
