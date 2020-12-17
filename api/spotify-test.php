@@ -1,17 +1,21 @@
 <?php
 
 require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/spotify.php';
+require __DIR__ . '/Spotify.php';
+
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__.'/..');
 $dotenv->load();
 
 
-// $result = $sp->search('metallica', 15, 'artist,album,playlist,track');
-// file_put_contents('search.json', json_encode($result, JSON_PRETTY_PRINT));
-$result = Spotify::search('metallica', 1, 'artist');
+$result = Spotify::search('hermetica', 1);
 
-var_export($result);
+// echo(json_encode($result, JSON_PRETTY_PRINT));
 
-// $result = $sp->getAlbums();
-// $sp->getArtistData('metallica');
+if(count($result['artists'])) {
+    $artist_id = $result['artists'][0]['id'];
+
+    $result = Spotify::getAlbums($artist_id);
+
+    echo(json_encode($result, JSON_PRETTY_PRINT));
+}

@@ -3,6 +3,7 @@
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 
+
 require __DIR__ . '/../vendor/autoload.php';
 
 
@@ -36,9 +37,10 @@ class Spotify {
     }
 
 
-    public static function search($keywords, $limit=1, $type='artist', $market='AR') {
+    public static function search($keywords, $limit=10, $offset=0, $type='artist', $market='AR') {
 
-        $uri = 'https://api.spotify.com/v1/search';
+        // https://developer.spotify.com/documentation/web-api/reference-beta/#category-search
+        $uri = "https://api.spotify.com/v1/search";
 
         $response = self::getInstance()->request($uri, [
             'query' => [
@@ -46,6 +48,7 @@ class Spotify {
                 'type' => $type,
                 'market' => $market,
                 'limit' => $limit,
+                'offset' => $offset,
             ],
         ]);
 
@@ -54,7 +57,7 @@ class Spotify {
             if(isset($typeResults['items'])){
                 $result[$atype] = [];
                 foreach ($typeResults['items'] as $key => $value) {
-                    $result[$atype][$value['id']] = [
+                    $result[$atype][] = [
                         'id'=>$value['id'],
                         'name'=>$value['name'],
                     ];
@@ -66,38 +69,72 @@ class Spotify {
     }
 
 
-    // https://open.spotify.com/artist/2ye2Wgw4gimLv2eAKyk1NB?si=uk379ferRDiqgoYBNb52Og
-    // https://open.spotify.com/track/2MuWTIM3b0YEAskbeeFE1i
-    public function getAlbums($artist_id = 'uk379ferRDiqgoYBNb52Og') {
-        $uri = 'https://api.spotify.com/v1/artists/$artist_id/albums?market=ES&limit=50';
+    public static function getAlbums($artist_id, $limit=10, $offset=0, $market='AR', $include_groups='album,single') {
 
+        // https://developer.spotify.com/documentation/web-api/reference-beta/#endpoint-get-an-artists-albums
+        $uri = "https://api.spotify.com/v1/artists/$artist_id/albums";
 
-        $response = $this->client->get($uri, ['headers' => ["Authorization"=>"Bearer {$this->access_token}"]]);
+        $response = self::getInstance()->request($uri, [
+            'query' => [
+                'market' => $market,
+                'limit' => $limit,
+                'offset' => $offset,
+                'include_groups' => $include_groups,
+            ]
+        ]);
 
-        // if($response->getStatusCode() != 200) {
-        //     throw new Exception('status code: ' . $response->getStatusCode());
-        // }
-        $body = $response->getBody()->getContents();
-        $data = @json_decode($body);
-        if (!$data) {
-            $data = ['raw response'=>$body];
+        $result = [];
+        if(isset($response['items'])){
+            foreach ($response['items'] as $album) {
+
+                $best_cover = array_pop($album['images']);
+                while(count($album['images'])) {
+                    $a_cover = array_pop($album['images']);
+                    if($a_cover['width'] > $best_cover['width']){
+                        $best_cover = $a_cover;
+                    }
+                }
+
+                switch ($album['release_date_precision']) {
+                    case 'year':
+                        $album['release_date'] .= '-01-01';
+                        break;
+                    case 'month':
+                        $album['release_date'] .= '-01';
+                        break;
+                }
+
+                $result[] = [
+                    'name'=> $album['name'],
+                    'released' => $album['release_date'],
+                    'tracks' => $album['total_tracks'],
+                    "cover" =>  $best_cover
+                ];
+            }
         }
-        $data['status-code'] = $response->getStatusCode();
-        return $data;
+
+        return $result;
     }
 
 
-    private function getArtistData($artist){
+    private function requestAll($uri, $extra = [], $method = 'GET') {
 
+        // TODO: make the request for all pages
+        // "limit": 10,
+        // "next": "https://api.spotify.com/v1/artists/1DFr97A9HnbV3SKTJFu62M/albums?offset=10&limit=10&include_groups=album,single&market=AR",
+        // "offset": 0,
+        // "previous": null,
+        // "total": 64
     }
 
-    private function request($uri, $extra = [], $method = 'GET'){
+
+    private function request($uri, $extra = [], $method = 'GET') {
 
         try {
             $extra['headers'] = ["Authorization"=>"Bearer " . $this->getToken()];
             $response = $this->client->request($method, $uri, $extra);
         } catch (GuzzleHttp\Exception\ClientException $gece) {
-            // echo(' retry auth, maybe token timeout\n');
+            // retry auth, maybe token timeout (1h)
             $this->authorize();
             $extra['headers'] = ["Authorization"=>"Bearer " . $this->getToken()];
             $response = $this->client->request($method, $uri, $extra);
